@@ -15,9 +15,21 @@ type database = {
   tables: table list;
 }
 
-(* Placeholder functions for database operations *)
-let create_database db_name = { name = db_name; tables = [] }
-let find_database db_name = (* Implement logic to find the database folder *)
+(* Functions for database operations *)
+let create_database db_name =
+  let folder_path = "./" ^ db_name in
+  let index_path = folder_path ^ "/index.md" in
+  Unix.mkdir folder_path 0o755;
+  let oc = open_out index_path in
+  fprintf oc "Database: %s\n" db_name;
+  close_out oc
+
+let find_database () =
+  let folders = Sys.readdir "./" in
+  Array.iter (fun folder ->
+    if Sys.is_directory folder then
+      printf "%s\n" folder
+  ) folders
 
 let use_database db_name =
   match find_database db_name with
