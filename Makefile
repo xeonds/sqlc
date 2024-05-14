@@ -1,10 +1,10 @@
 OCAMLC_FLAGS = -package angstrom -package csv
 
-main: ast.ml eval.ml main.ml
-	ocamlfind ocamlc $(OCAMLC_FLAGS) -o main ast.ml eval.ml main.ml
+main: src/ast.ml src/main.ml
+	cd src && ocamlfind ocamlc $(OCAMLC_FLAGS) -o ../sqlc ast.ml lexer.ml main.ml 
 
-lexer: lexer.mll
-	ocamllex lexer.mll
+lexer: src/lexer.mll
+	cd src && ocamllex lexer.mll
 
-parser: parser.mly
-	ocamlyacc parser.mly
+parser: src/parser.mly
+	cd src && ocamlyacc parser.mly
