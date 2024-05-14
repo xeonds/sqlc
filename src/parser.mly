@@ -1,7 +1,7 @@
 /* parser.mly */
 /* Simple SQL statement parser */
 
-%{ open Ast %}
+%{ open Printf %}
 
 /* Tokens */
 %token <string> IDENTIFIER
