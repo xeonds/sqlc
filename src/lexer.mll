@@ -1,4 +1,8 @@
-{ open Parser }
+{
+open Parser
+
+exception Lexing_error of string
+}
 
 let whitespace = [' ' '\t' '\n' '\r']+
 let digit = ['0'-'9']
