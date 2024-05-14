@@ -23,4 +23,4 @@ src/lexer.ml: src/lexer.mll
 	cd src && ocamllex lexer.mll
 
 clean:
-	rm -f src/*.cmo src/*.cmi src/*.mli src/{parser,lexer}.ml sqlc
+	rm -f src/*.cmo src/*.cmi src/*.mli src/{parser,lexer}.ml
