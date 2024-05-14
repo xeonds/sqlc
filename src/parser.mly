@@ -20,10 +20,11 @@
 %% /* Grammar rules and actions */
 
 main:
+  | statement { $1 }
   | statement SEMICOLON { $1 }
 
 statement:
-  | select_stmt { $1 }
+  | SELECT columns FROM IDENTIFIER opt_where SEMICOLON { Select($2, $4, $5) }
   | CREATE DATABASE IDENTIFIER SEMICOLON { CreateDatabase $3 }
   | USE DATABASE IDENTIFIER SEMICOLON { UseDatabase $3 }
   | CREATE TABLE IDENTIFIER LPAREN columns RPAREN SEMICOLON { CreateTable($3, $5) }
@@ -34,9 +35,6 @@ statement:
   | DROP TABLE IDENTIFIER SEMICOLON { DropTable $3 }
   | DROP DATABASE IDENTIFIER SEMICOLON { DropDatabase $3 }
   | EXIT SEMICOLON { Exit }
-
-select_stmt:
-  | SELECT columns FROM IDENTIFIER opt_where SEMICOLON { Select($2, $4, $5) }
 
 columns:
   | IDENTIFIER COMMA columns { [$1] @ $3 }
