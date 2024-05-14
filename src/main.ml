@@ -1,21 +1,27 @@
-open Lexer
-open Parser
+open Printf
+open Lexing
 
-let parse str =
-  let lexbuf = Lexing.from_string str in
+let parse_with_error lexbuf =
   try
-    main Sql_lexer.read lexbuf
+    let result = Parser.main Lexer.token lexbuf in
+    Some(result)
   with
-  | Lexing_error msg -> Printf.printf "Lexing error: %s\n" msg
-  | Parsing.Parse_error -> Printf.printf "Parsing error\n"
+  | Lexer.Lexing_error msg ->
+      eprintf "Lexing error: %s\n%!" msg;
+      None
+  | Parsing.Parse_error ->
+      eprintf "At offset %d: syntax error.\n%!" (Lexing.lexeme_start lexbuf);
+      None
 
 let rec repl () =
-  print_string "sql> ";
+  printf "> ";
   flush stdout;
-  match read_line () with
-  | exception End_of_file -> ()
-  | line ->
-    parse line;
-    repl ()
+  let input = read_line () in
+  let lexbuf = from_string input in
+  match parse_with_error lexbuf with
+  | Some(ast) ->
+      printf "Parsed: %s\n" (Ast.show_expr ast); (* 确保在 ast.ml 文件中实现 show_expr 函数 *)
+      repl ()
+  | None -> repl ()
 
 let () = repl ()

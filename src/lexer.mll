@@ -9,8 +9,8 @@ let digit = ['0'-'9']
 let alpha = ['a'-'z' 'A'-'Z']
 let alphanum = alpha | digit
 
-rule read = parse
-  | whitespace { read lexbuf } (* Ignore whitespace *)
+rule token = parse
+  | whitespace { token lexbuf } (* Ignore whitespace *)
   | "CREATE" { CREATE }
   | "USE"   { USE }
   | "SHOW"  { SHOW }
