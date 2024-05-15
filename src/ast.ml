@@ -1,52 +1,72 @@
-(* ast.ml *)
+type data_type = 
+  | IntType 
+  | StringType 
+  | FloatType 
+  | BoolType
 
-(* 表达式类型 *)
+type value =
+  | IntValue of int
+  | StringValue of string
+  | FloatValue of float
+  | BoolValue of bool
+
 type expr =
   | CreateDatabase of string
   | UseDatabase of string
-  | CreateTable of string * string list
-  | ShowDatabases
+  | CreateTable of string * (string * data_type) list
   | ShowTables
-  | InsertInto of string * string list * string list
-  | Select of string list * string * condition option
-  | Update of string * string * int * string
+  | ShowDatabases
+  | InsertInto of string * string list * value list
+  | Select of string list * string * (condition option)
+  | Update of string * string * value * string
   | Delete of string * string
   | DropTable of string
   | DropDatabase of string
   | Exit
-
-(* 条件类型 *)
 and condition =
-  | LessThan of string * int
-  | GreaterThan of string * int
-  | LessEqual of string * int
-  | GreaterEqual of string * int
-  | NotEqual of string * int
-  | Equal of string * int
+  | LessThan of string * value
+  | GreaterThan of string * value
+  | LessEqual of string * value
+  | GreaterEqual of string * value
+  | NotEqual of string * value
+  | Equal of string * value
 
-(* 用于调试的辅助函数，用于将表达式转换为字符串 *)
 let rec show_expr = function
-  | CreateDatabase name -> Printf.sprintf "CreateDatabase(%s)" name
-  | UseDatabase name -> Printf.sprintf "UseDatabase(%s)" name
-  | CreateTable (name, cols) -> Printf.sprintf "CreateTable(%s, [%s])" name (String.concat "; " cols)
+  | CreateDatabase name -> "CreateDatabase " ^ name
+  | UseDatabase name -> "UseDatabase " ^ name
+  | CreateTable (name, columns) -> 
+      "CreateTable " ^ name ^ " (" ^ (String.concat ", " (List.map show_column columns)) ^ ")"
   | ShowTables -> "ShowTables"
   | ShowDatabases -> "ShowDatabases"
-  | InsertInto (table, cols, vals) -> Printf.sprintf "InsertInto(%s, [%s], [%s])" table (String.concat "; " cols) (String.concat "; " vals)
-  | Select (cols, table, cond) -> Printf.sprintf "Select([%s], %s, %s)" (String.concat "; " cols) table (show_opt_cond cond)
-  | Update (table, col, value, cond) -> Printf.sprintf "Update(%s, %s, %d, %s)" table col value cond
-  | Delete (table, cond) -> Printf.sprintf "Delete(%s, %s)" table cond
-  | DropTable name -> Printf.sprintf "DropTable(%s)" name
-  | DropDatabase name -> Printf.sprintf "DropDatabase(%s)" name
+  | InsertInto (name, columns, values) ->
+      "InsertInto " ^ name ^ " (" ^ (String.concat ", " columns) ^ ") VALUES (" ^ (String.concat ", " (List.map show_value values)) ^ ")"
+  | Select (columns, table, opt_where) ->
+      "Select " ^ (String.concat ", " columns) ^ " FROM " ^ table ^ (match opt_where with Some(cond) -> " WHERE " ^ show_condition cond | None -> "")
+  | Update (table, column, value, cond) ->
+      "Update " ^ table ^ " SET " ^ column ^ " = " ^ show_value value ^ " WHERE " ^ cond
+  | Delete (table, cond) ->
+      "Delete FROM " ^ table ^ " WHERE " ^ cond
+  | DropTable name -> "DropTable " ^ name
+  | DropDatabase name -> "DropDatabase " ^ name
   | Exit -> "Exit"
 
-and show_opt_cond = function
-  | Some cond -> show_condition cond
-  | None -> "None"
+and show_column (name, data_type) =
+  name ^ " " ^ (match data_type with
+    | IntType -> "INT"
+    | StringType -> "STRING"
+    | FloatType -> "FLOAT"
+    | BoolType -> "BOOL")
+
+and show_value = function
+  | IntValue v -> string_of_int v
+  | StringValue v -> "\"" ^ v ^ "\""
+  | FloatValue v -> string_of_float v
+  | BoolValue v -> string_of_bool v
 
 and show_condition = function
-  | LessThan (col, value) -> Printf.sprintf "LessThan(%s, %d)" col value
-  | GreaterThan (col, value) -> Printf.sprintf "GreaterThan(%s, %d)" col value
-  | LessEqual (col, value) -> Printf.sprintf "LessEqual(%s, %d)" col value
-  | GreaterEqual (col, value) -> Printf.sprintf "GreaterEqual(%s, %d)" col value
-  | NotEqual (col, value) -> Printf.sprintf "NotEqual(%s, %d)" col value
-  | Equal (col, value) -> Printf.sprintf "Equal(%s, %d)" col value
+  | LessThan (col, value) -> col ^ " < " ^ show_value value
+  | GreaterThan (col, value) -> col ^ " > " ^ show_value value
+  | LessEqual (col, value) -> col ^ " <= " ^ show_value value
+  | GreaterEqual (col, value) -> col ^ " >= " ^ show_value value
+  | NotEqual (col, value) -> col ^ " != " ^ show_value value
+  | Equal (col, value) -> col ^ " = " ^ show_value value

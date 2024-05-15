@@ -29,7 +29,8 @@ let create_table table_name columns =
     else
       let oc = open_out table_path in
       let csv = Csv.to_channel oc in
-      Csv.output_record csv columns;
+      let col_names = List.map (fun (name, _) -> name) columns in
+      Csv.output_record csv col_names;
       Csv.close_out csv
   | None -> Printf.printf "No database selected.\n"
 
@@ -47,6 +48,13 @@ let show_databases () =
   | files -> Array.iter (fun f -> if Sys.is_directory f then Printf.printf "%s\n" f) files
   | exception Sys_error msg -> Printf.printf "Error: %s\n" msg
 
+(* 将value转换为字符串 *)
+let value_to_string = function
+  | IntValue v -> string_of_int v
+  | StringValue v -> v
+  | FloatValue v -> string_of_float v
+  | BoolValue v -> string_of_bool v
+
 (* 插入数据到表中 *)
 let insert_into table_name columns values =
   match !current_db with
@@ -55,7 +63,8 @@ let insert_into table_name columns values =
     if Sys.file_exists table_path then
       let oc = open_out_gen [Open_append] 0o666 table_path in
       let csv = Csv.to_channel oc in
-      Csv.output_record csv values;
+      let values_as_strings = List.map value_to_string values in
+      Csv.output_record csv values_as_strings;
       Csv.close_out csv
     else
       Printf.printf "Table %s does not exist.\n" table_name
@@ -69,7 +78,14 @@ let select columns table_name condition =
     if Sys.file_exists table_path then
       let ic = open_in table_path in
       let csv = Csv.of_channel ic in
-      Csv.iter ~f:(fun row -> Printf.printf "%s\n" (String.concat ", " row)) csv;
+      (* Read header *)
+      let headers = Csv.next csv in
+      let col_indices = List.map (fun col -> List.assoc col (List.mapi (fun i h -> (h, i)) headers)) columns in
+      (* Filter and print rows *)
+      Csv.iter ~f:(fun row ->
+        let selected_values = List.map (fun i -> List.nth row i) col_indices in
+        Printf.printf "%s\n" (String.concat ", " selected_values)
+      ) csv;
       Csv.close_in csv
     else
       Printf.printf "Table %s does not exist.\n" table_name
