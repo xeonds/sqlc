@@ -25,6 +25,7 @@ rule token = parse
   | "WHERE"  { WHERE }
   | "EXIT"   { EXIT }
   | "DATABASE" { DATABASE }
+  | "DATABASES" { DATABASES }
   | "TABLES" { TABLES }
   | "TABLE" { TABLE }
   | "VALUES" { VALUES }

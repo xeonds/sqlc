@@ -1,23 +1,23 @@
-OCAMLC_FLAGS = -package angstrom
+OCAMLC_FLAGS = -package angstrom -package csv -package unix
 
-sqlc: src/ast.cmo src/eval.cmo src/parser.cmo src/lexer.cmo src/main.cmo
+sqlc: src/ast.cmo src/parser.cmo src/lexer.cmo src/eval.cmo src/main.cmo
 	cd src && \
-	ocamlfind ocamlc $(OCAMLC_FLAGS) -o ../sqlc ast.cmo eval.cmo parser.cmo lexer.cmo main.cmo
+	ocamlfind ocamlc $(OCAMLC_FLAGS) -linkpkg -o ../sqlc ast.cmo parser.cmo lexer.cmo eval.cmo main.cmo
 
 src/ast.cmo: src/ast.ml
 	cd src && ocamlfind ocamlc -c ast.ml
 
 src/eval.cmo: src/eval.ml
-	cd src && ocamlfind ocamlc -package csv -package unix -c eval.ml
+	cd src && ocamlfind ocamlc $(OCAMLC_FLAGS) -c eval.ml
 
 src/main.cmo: src/parser.cmo src/lexer.cmo src/ast.cmo src/eval.cmo src/main.ml
-	cd src && ocamlfind ocamlc -c main.ml
+	cd src && ocamlfind ocamlc $(OCAMLC_FLAGS) -c main.ml
 
 src/lexer.cmo: src/parser.cmo src/lexer.ml
-	cd src && ocamlfind ocamlc -c lexer.ml
+	cd src && ocamlfind ocamlc $(OCAMLC_FLAGS) -c lexer.ml
 
 src/parser.cmo: src/parser.mly
-	cd src && ocamlyacc parser.mly && ocamlfind ocamlc -c parser.mli && ocamlfind ocamlc -c parser.ml
+	cd src && ocamlyacc parser.mly && ocamlfind ocamlc $(OCAMLC_FLAGS) -c parser.mli && ocamlfind ocamlc $(OCAMLC_FLAGS) -c parser.ml
 
 src/lexer.ml: src/lexer.mll
 	cd src && ocamllex lexer.mll

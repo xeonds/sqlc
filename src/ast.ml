@@ -5,6 +5,7 @@ type expr =
   | CreateDatabase of string
   | UseDatabase of string
   | CreateTable of string * string list
+  | ShowDatabases
   | ShowTables
   | InsertInto of string * string list * string list
   | Select of string list * string * condition option
@@ -29,6 +30,7 @@ let rec show_expr = function
   | UseDatabase name -> Printf.sprintf "UseDatabase(%s)" name
   | CreateTable (name, cols) -> Printf.sprintf "CreateTable(%s, [%s])" name (String.concat "; " cols)
   | ShowTables -> "ShowTables"
+  | ShowDatabases -> "ShowDatabases"
   | InsertInto (table, cols, vals) -> Printf.sprintf "InsertInto(%s, [%s], [%s])" table (String.concat "; " cols) (String.concat "; " vals)
   | Select (cols, table, cond) -> Printf.sprintf "Select([%s], %s, %s)" (String.concat "; " cols) table (show_opt_cond cond)
   | Update (table, col, value, cond) -> Printf.sprintf "Update(%s, %s, %d, %s)" table col value cond
