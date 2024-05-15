@@ -1,4 +1,4 @@
-OCAMLC_FLAGS = -package angstrom -package csv
+OCAMLC_FLAGS = -package angstrom
 
 sqlc: src/ast.cmo src/eval.cmo src/parser.cmo src/lexer.cmo src/main.cmo
 	cd src && \
@@ -8,7 +8,7 @@ src/ast.cmo: src/ast.ml
 	cd src && ocamlfind ocamlc -c ast.ml
 
 src/eval.cmo: src/eval.ml
-	cd src && ocamlfind ocamlc -c eval.ml
+	cd src && ocamlfind ocamlc -package csv -package unix -c eval.ml
 
 src/main.cmo: src/parser.cmo src/lexer.cmo src/ast.cmo src/eval.cmo src/main.ml
 	cd src && ocamlfind ocamlc -c main.ml

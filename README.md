@@ -1,6 +1,7 @@
 # sqlc
 
->WARNING: THIS PROJECT IS EXPIRIMENTAL AND SHOULD NOT BE USED IN PRODUCTION
+> [!WARNING]
+> THIS PROJECT IS EXPIRIMENTAL AND SHOULD NOT BE USED IN PRODUCTION
 
 sqlc is a basic SQL statement parser and executor written in OCaml. It provides a simple and efficient way to parse and execute SQL statements.
 
