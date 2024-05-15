@@ -33,6 +33,9 @@ rule token = parse
   | "STRING" { STRING_TYPE }
   | "FLOAT" { FLOAT_TYPE }
   | "BOOL" { BOOL_TYPE }
+  | "AND" { AND }
+  | "OR" { OR }
+  | "NOT" { NOT }
   | "*"      { STAR }
   | ","      { COMMA }
   | "="      { EQUALS }
