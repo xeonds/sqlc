@@ -6,11 +6,10 @@ let current_db = ref None
 
 (* 创建数据库目录 *)
 let create_database db_name =
-  let dir_name = db_name in
-  if Sys.file_exists dir_name then
+  if Sys.file_exists db_name then
     Printf.printf "Database %s already exists.\n" db_name
   else
-    Unix.mkdir dir_name 0o755
+    Unix.mkdir db_name 0o755
 
 (* 切换数据库 *)
 let use_database db_name =
@@ -27,19 +26,21 @@ let create_table table_name columns =
     if Sys.file_exists table_path then
       Printf.printf "Table %s already exists.\n" table_name
     else
-      let oc = open_out table_path in
-      let csv = Csv.to_channel oc in
-      let col_names = List.map (fun (name, _) -> name) columns in
+      let csv = Csv.to_channel (open_out table_path) in
+      let col_names, col_types = List.split columns in
       Csv.output_record csv col_names;
+      Csv.output_record csv (List.map(fun t -> match t with
+        | IntType -> "INT"
+        | StringType -> "STRING"
+        | FloatType -> "FLOAT"
+        | BoolType -> "BOOL") col_types);
       Csv.close_out csv
   | None -> Printf.printf "No database selected.\n"
 
 (* 显示当前数据库中的表 *)
 let show_tables () =
   match !current_db with
-  | Some db_name ->
-    let files = Sys.readdir db_name in
-    Array.iter (fun f -> if Filename.check_suffix f ".csv" then Printf.printf "%s\n" (Filename.chop_suffix f ".csv")) files
+  | Some db_name -> let files = Sys.readdir db_name in Array.iter (fun f -> if Filename.check_suffix f ".csv" then Printf.printf "%s\n" (Filename.chop_suffix f ".csv")) files
   | None -> Printf.printf "No database selected.\n"
 
 (* 显示所有数据库 *)
@@ -61,13 +62,10 @@ let insert_into table_name columns values =
   | Some db_name ->
     let table_path = Filename.concat db_name (table_name ^ ".csv") in
     if Sys.file_exists table_path then
-      let oc = open_out_gen [Open_append] 0o666 table_path in
-      let csv = Csv.to_channel oc in
-      let values_as_strings = List.map value_to_string values in
-      Csv.output_record csv values_as_strings;
+      let csv = Csv.to_channel (open_out_gen [Open_append] 0o666 table_path) in
+      Csv.output_record csv (List.map value_to_string values);
       Csv.close_out csv
-    else
-      Printf.printf "Table %s does not exist.\n" table_name
+    else Printf.printf "Table %s does not exist.\n" table_name
   | None -> Printf.printf "No database selected.\n"
 
 (* 选择数据（简化实现） *)
@@ -76,38 +74,63 @@ let select columns table_name condition =
   | Some db_name ->
     let table_path = Filename.concat db_name (table_name ^ ".csv") in
     if Sys.file_exists table_path then
-      let ic = open_in table_path in
-      let csv = Csv.of_channel ic in
+      let csv = Csv.of_channel (open_in table_path) in
       (* Read header *)
       let headers = Csv.next csv in
+      let types = Csv.next csv in
       let col_indices = List.map (fun col -> List.assoc col (List.mapi (fun i h -> (h, i)) headers)) columns in
       (* Filter and print rows *)
       Csv.iter ~f:(fun row ->
         let selected_values = List.map (fun i -> List.nth row i) col_indices in
-        Printf.printf "%s\n" (String.concat ", " selected_values)
-      ) csv;
+        let row_match_cond = match condition with
+          | None -> true
+          | Some cond -> (match cond with
+            | LessThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+              | i, IntValue v -> int_of_string (List.nth row i) < v
+              | i, FloatValue v -> float_of_string (List.nth row i) < v
+              | _, _ -> false)
+            | GreaterThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+              | i, IntValue v -> int_of_string (List.nth row i) > v
+              | i, FloatValue v -> float_of_string (List.nth row i) > v
+              | _, _ -> false)
+            | LessEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+              | i, IntValue v -> int_of_string (List.nth row i) <= v
+              | i, FloatValue v -> float_of_string (List.nth row i) <= v
+              | _, _ -> false)
+            | GreaterEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+              | i, IntValue v -> int_of_string (List.nth row i) >= v
+              | i, FloatValue v -> float_of_string (List.nth row i) >= v
+              | _, _ -> false)
+            | Equal (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+              | i, IntValue v -> int_of_string (List.nth row i) = v
+              | i, FloatValue v -> float_of_string (List.nth row i) = v
+              | i, StringValue v -> List.nth row i = v
+              | i, BoolValue v -> bool_of_string (List.nth row i) = v)
+            | NotEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+              | i, IntValue v -> int_of_string (List.nth row i) <> v
+              | i, FloatValue v -> float_of_string (List.nth row i) <> v
+              | i, StringValue v -> List.nth row i <> v
+              | i, BoolValue v -> bool_of_string (List.nth row i) <> v)
+          ) in
+        if row_match_cond then Printf.printf "%s\n" (String.concat ", " selected_values)
+        else ()) csv;
       Csv.close_in csv
-    else
-      Printf.printf "Table %s does not exist.\n" table_name
+    else Printf.printf "Table %s does not exist.\n" table_name
   | None -> Printf.printf "No database selected.\n"
 
 (* 删除数据库目录 *)
 let drop_database db_name =
-  let dir_name = db_name in
-  if Sys.file_exists dir_name then
-    Sys.command (Printf.sprintf "rm -rf %s" dir_name) |> ignore
-  else
-    Printf.printf "Database %s does not exist.\n" db_name
+  if Sys.file_exists db_name then
+    Sys.command (Printf.sprintf "rm -rf %s" db_name) |> ignore
+  else Printf.printf "Database %s does not exist.\n" db_name
 
 (* 删除表（CSV文件） *)
 let drop_table table_name =
   match !current_db with
   | Some db_name ->
     let table_path = Filename.concat db_name (table_name ^ ".csv") in
-    if Sys.file_exists table_path then
-      Sys.remove table_path
-    else
-      Printf.printf "Table %s does not exist.\n" table_name
+    if Sys.file_exists table_path then Sys.remove table_path
+    else Printf.printf "Table %s does not exist.\n" table_name
   | None -> Printf.printf "No database selected.\n"
 
 (* 退出程序 *)
@@ -145,5 +168,4 @@ let rec main_loop () =
   | End_of_file -> ()
 
 (* 程序入口 *)
-let () =
-  main_loop ()
+let () = main_loop ()
