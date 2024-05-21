@@ -1,8 +1,14 @@
 OCAMLC_FLAGS = -package angstrom -package csv -package unix
 
+all: sql sqlc
+
 sqlc: src/ast.cmo src/parser.cmo src/lexer.cmo src/eval.cmo src/main.cmo
 	cd src && \
-	ocamlfind ocamlc $(OCAMLC_FLAGS) -linkpkg -o ../sqlc ast.cmo parser.cmo lexer.cmo eval.cmo main.cmo
+	ocamlfind ocamlc $(OCAMLC_FLAGS) -linkpkg -o ../sqlc ast.cmo parser.cmo lexer.cmo compiler.cmo
+
+sql: src/ast.cmo src/parser.cmo src/lexer.cmo src/eval.cmo src/main.cmo
+	cd src && \
+	ocamlfind ocamlc $(OCAMLC_FLAGS) -linkpkg -o ../sql ast.cmo parser.cmo lexer.cmo eval.cmo
 
 src/ast.cmo: src/ast.ml
 	cd src && ocamlfind ocamlc -c ast.ml
@@ -21,6 +27,9 @@ src/parser.cmo: src/parser.mly
 
 src/lexer.ml: src/lexer.mll
 	cd src && ocamllex lexer.mll
+
+src/compiler.cmo: src/compiler.ml
+	cd src && ocamlfind ocamlc $(OCAMLC_FLAGS) -c compiler.ml
 
 clean:
 	rm -f src/*.cmo src/*.cmi src/*.mli src/{parser,lexer}.ml

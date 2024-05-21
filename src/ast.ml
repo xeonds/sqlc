@@ -14,8 +14,8 @@ type expr =
   | ShowDatabases
   | InsertInto of string * string list * value list
   | Select of string list * string * (condition option)
-  | Update of string * string * value * string
-  | Delete of string * string
+  | Update of string * string * value * (condition option)
+  | Delete of string * (condition option)
   | DropTable of string
   | DropDatabase of string
   | Exit
@@ -27,6 +27,7 @@ and condition =
   | NotEqual of string * value
   | Equal of string * value
 
+(* Show parsed expressions *)
 let rec show_expr = function
   | CreateDatabase name -> "CreateDatabase " ^ name
   | UseDatabase name -> "UseDatabase " ^ name
@@ -35,8 +36,8 @@ let rec show_expr = function
   | ShowDatabases -> "ShowDatabases"
   | InsertInto (name, columns, values) -> "InsertInto " ^ name ^ " (" ^ (String.concat ", " columns) ^ ") VALUES (" ^ (String.concat ", " (List.map show_value values)) ^ ")"
   | Select (columns, table, opt_where) -> "Select " ^ (String.concat ", " columns) ^ " FROM " ^ table ^ (match opt_where with Some(cond) -> " WHERE " ^ show_condition cond | None -> "")
-  | Update (table, column, value, cond) -> "Update " ^ table ^ " SET " ^ column ^ " = " ^ show_value value ^ " WHERE " ^ cond
-  | Delete (table, cond) -> "Delete FROM " ^ table ^ " WHERE " ^ cond
+  | Update (table, column, value, opt_where) -> "Update " ^ table ^ " SET " ^ column ^ " = " ^ show_value value ^ (match opt_where with Some(cond) -> " WHERE " ^ show_condition cond | None -> "")
+  | Delete (table, opt_where) -> "Delete FROM " ^ table ^ (match opt_where with Some(cond) -> " WHERE " ^ show_condition cond | None -> "")
   | DropTable name -> "DropTable " ^ name
   | DropDatabase name -> "DropDatabase " ^ name
   | Exit -> "Exit"
@@ -79,10 +80,14 @@ let rec generate_code = function
     Printf.sprintf "select [%s] \"%s\" %s" cols_str table cond_str
   | Update (table, col, value, cond) ->
     let value_str = string_of_value value in
-    let cond_str = generate_condition_code cond in
+    let cond_str = match cond with
+      | Some c -> generate_condition_code c 
+      | None -> "None" in
     Printf.sprintf "update \"%s\" \"%s\" %s %s" table col value_str cond_str
   | Delete (table, cond) ->
-    let cond_str = generate_condition_code cond in
+    let cond_str = match cond with 
+      | Some c -> generate_condition_code c
+      | None -> "None" in
     Printf.sprintf "delete \"%s\" %s" table cond_str
   | DropTable name -> Printf.sprintf "drop_table \"%s\"" name
   | DropDatabase name -> Printf.sprintf "drop_database \"%s\"" name

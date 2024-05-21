@@ -56,6 +56,35 @@ let value_to_string = function
   | FloatValue v -> string_of_float v
   | BoolValue v -> string_of_bool v
 
+(* 条件表达式求值 *)
+let eval_cond cond row headers = match cond with
+  | LessThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+    | i, IntValue v -> int_of_string (List.nth row i) < v
+    | i, FloatValue v -> float_of_string (List.nth row i) < v
+    | _, _ -> false)
+  | GreaterThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+    | i, IntValue v -> int_of_string (List.nth row i) > v
+    | i, FloatValue v -> float_of_string (List.nth row i) > v
+    | _, _ -> false)
+  | LessEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+    | i, IntValue v -> int_of_string (List.nth row i) <= v
+    | i, FloatValue v -> float_of_string (List.nth row i) <= v
+    | _, _ -> false)
+  | GreaterEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+    | i, IntValue v -> int_of_string (List.nth row i) >= v
+    | i, FloatValue v -> float_of_string (List.nth row i) >= v
+    | _, _ -> false)
+  | Equal (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+    | i, IntValue v -> int_of_string (List.nth row i) = v
+    | i, FloatValue v -> float_of_string (List.nth row i) = v
+    | i, StringValue v -> List.nth row i = v
+    | i, BoolValue v -> bool_of_string (List.nth row i) = v)
+  | NotEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
+    | i, IntValue v -> int_of_string (List.nth row i) <> v
+    | i, FloatValue v -> float_of_string (List.nth row i) <> v
+    | i, StringValue v -> List.nth row i <> v
+    | i, BoolValue v -> bool_of_string (List.nth row i) <> v)
+
 (* 插入数据到表中 *)
 let insert_into table_name columns values =
   match !current_db with
@@ -84,35 +113,47 @@ let select columns table_name condition =
         let selected_values = List.map (fun i -> List.nth row i) col_indices in
         let row_match_cond = match condition with
           | None -> true
-          | Some cond -> (match cond with
-            | LessThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
-              | i, IntValue v -> int_of_string (List.nth row i) < v
-              | i, FloatValue v -> float_of_string (List.nth row i) < v
-              | _, _ -> false)
-            | GreaterThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
-              | i, IntValue v -> int_of_string (List.nth row i) > v
-              | i, FloatValue v -> float_of_string (List.nth row i) > v
-              | _, _ -> false)
-            | LessEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
-              | i, IntValue v -> int_of_string (List.nth row i) <= v
-              | i, FloatValue v -> float_of_string (List.nth row i) <= v
-              | _, _ -> false)
-            | GreaterEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
-              | i, IntValue v -> int_of_string (List.nth row i) >= v
-              | i, FloatValue v -> float_of_string (List.nth row i) >= v
-              | _, _ -> false)
-            | Equal (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
-              | i, IntValue v -> int_of_string (List.nth row i) = v
-              | i, FloatValue v -> float_of_string (List.nth row i) = v
-              | i, StringValue v -> List.nth row i = v
-              | i, BoolValue v -> bool_of_string (List.nth row i) = v)
-            | NotEqual (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
-              | i, IntValue v -> int_of_string (List.nth row i) <> v
-              | i, FloatValue v -> float_of_string (List.nth row i) <> v
-              | i, StringValue v -> List.nth row i <> v
-              | i, BoolValue v -> bool_of_string (List.nth row i) <> v)
-          ) in
+          | Some cond -> (eval_cond cond row headers) in
         if row_match_cond then Printf.printf "%s\n" (String.concat ", " selected_values)
+        else ()) csv;
+      Csv.close_in csv
+    else Printf.printf "Table %s does not exist.\n" table_name
+  | None -> Printf.printf "No database selected.\n"
+
+(* 更新数据 *)
+let update_table table_name column value condition =
+  match !current_db with
+  | Some db_name ->
+    let table_path = Filename.concat db_name (table_name ^ ".csv") in
+    if Sys.file_exists table_path then
+      let csv = Csv.of_channel (open_in table_path) in
+      let headers = Csv.next csv in
+      let types = Csv.next csv in
+      let col_index = List.assoc column (List.mapi (fun i h -> (h, i)) headers) in
+      Csv.iter ~f:(fun row ->
+        let row_match_cond = match condition with 
+          | None -> true
+          | Some cond -> (eval_cond cond row headers) in
+        if row_match_cond then Printf.printf "%s" (value_to_string value)
+        else ()) csv;
+      Csv.close_in csv
+    else Printf.printf "Table %s does not exist.\n" table_name
+  | None -> Printf.printf "No database selected.\n"
+
+(* 删除数据 *)
+let delete_from table_name condition =
+  match !current_db with
+  | Some db_name ->
+    let table_path = Filename.concat db_name (table_name ^ ".csv") in
+    if Sys.file_exists table_path then
+      let csv = Csv.of_channel (open_in table_path) in
+      let headers = Csv.next csv in
+      let types = Csv.next csv in
+      Csv.iter ~f:(fun row ->
+        let row_match_cond = match condition with
+          | None -> true
+          | Some cond -> (eval_cond cond row headers) in
+        if row_match_cond then ()
         else ()) csv;
       Csv.close_in csv
     else Printf.printf "Table %s does not exist.\n" table_name
@@ -147,7 +188,7 @@ let eval_expr = function
   | ShowTables -> show_tables ()
   | InsertInto (table, cols, vals) -> insert_into table cols vals
   | Select (cols, table, cond) -> select cols table cond
-  | Update (table, col, value, cond) -> (* 实现Update逻辑 *) ()
+  | Update (table, col, value, cond) -> update_table table col value cond
   | Delete (table, cond) -> (* 实现Delete逻辑 *) ()
   | DropTable name -> drop_table name
   | DropDatabase name -> drop_database name
