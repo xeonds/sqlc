@@ -106,7 +106,7 @@ let select columns table_name condition =
       let csv = Csv.of_channel (open_in table_path) in
       (* Read header *)
       let headers = Csv.next csv in
-      let types = Csv.next csv in
+      let _ = Csv.next csv in
       let col_indices = List.map (fun col -> List.assoc col (List.mapi (fun i h -> (h, i)) headers)) columns in
       (* Filter and print rows *)
       Csv.iter ~f:(fun row ->
@@ -126,17 +126,22 @@ let update_table table_name column value condition =
   | Some db_name ->
     let table_path = Filename.concat db_name (table_name ^ ".csv") in
     if Sys.file_exists table_path then
-      let csv = Csv.of_channel (open_in table_path) in
-      let headers = Csv.next csv in
-      let types = Csv.next csv in
+      let data_origin = Csv.load table_path in
+      let headers = List.hd data_origin in
+      let types = List.hd (List.tl data_origin) in
+      let records = List.tl (List.tl data_origin) in
       let col_index = List.assoc column (List.mapi (fun i h -> (h, i)) headers) in
-      Csv.iter ~f:(fun row ->
-        let row_match_cond = match condition with 
+      let data_updated = List.mapi (fun i row -> 
+        let row_match_cond = match condition with
           | None -> true
           | Some cond -> (eval_cond cond row headers) in
-        if row_match_cond then Printf.printf "%s" (value_to_string value)
-        else ()) csv;
-      Csv.close_in csv
+        if row_match_cond then List.mapi (fun j v -> if j == col_index then value_to_string value else v) row
+        else row) records in
+      let csv = Csv.to_channel (open_out table_path) in
+      Csv.output_record csv headers;
+      Csv.output_record csv types;
+      List.iter (fun row -> Csv.output_record csv row) data_updated;
+      Csv.close_out csv
     else Printf.printf "Table %s does not exist.\n" table_name
   | None -> Printf.printf "No database selected.\n"
 
@@ -146,16 +151,22 @@ let delete_from table_name condition =
   | Some db_name ->
     let table_path = Filename.concat db_name (table_name ^ ".csv") in
     if Sys.file_exists table_path then
-      let csv = Csv.of_channel (open_in table_path) in
-      let headers = Csv.next csv in
-      let types = Csv.next csv in
-      Csv.iter ~f:(fun row ->
-        let row_match_cond = match condition with
-          | None -> true
-          | Some cond -> (eval_cond cond row headers) in
-        if row_match_cond then ()
-        else ()) csv;
-      Csv.close_in csv
+      let data_origin = Csv.load table_path in
+      let headers = List.hd data_origin in
+      let types = List.hd (List.tl data_origin) in
+      let records = List.tl (List.tl data_origin) in
+      let data_deleted = List.mapi (fun i row -> if (
+        match condition with
+        | None -> true
+        | Some cond -> (eval_cond cond row headers)
+      ) then None else Some row) records in
+      let csv = Csv.to_channel (open_out table_path) in
+      Csv.output_record csv headers;
+      Csv.output_record csv types;
+      List.iter (fun row -> match row with
+        | Some r -> Csv.output_record csv r
+        | None -> ()) data_deleted;
+      Csv.close_out csv
     else Printf.printf "Table %s does not exist.\n" table_name
   | None -> Printf.printf "No database selected.\n"
 
@@ -189,7 +200,7 @@ let eval_expr = function
   | InsertInto (table, cols, vals) -> insert_into table cols vals
   | Select (cols, table, cond) -> select cols table cond
   | Update (table, col, value, cond) -> update_table table col value cond
-  | Delete (table, cond) -> (* 实现Delete逻辑 *) ()
+  | Delete (table, cond) -> delete_from table cond
   | DropTable name -> drop_table name
   | DropDatabase name -> drop_database name
   | Exit -> exit_program ()
