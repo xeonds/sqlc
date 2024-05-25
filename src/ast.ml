@@ -26,6 +26,9 @@ and condition =
   | GreaterEqual of string * value
   | NotEqual of string * value
   | Equal of string * value
+  | And of condition * condition
+  | Or of condition * condition
+  | Not of condition
 
 (* Show parsed expressions *)
 let rec show_expr = function
@@ -58,6 +61,9 @@ and show_condition = function
   | GreaterEqual (col, value) -> col ^ " >= " ^ show_value value
   | NotEqual (col, value) -> col ^ " != " ^ show_value value
   | Equal (col, value) -> col ^ " = " ^ show_value value
+  | And (cond1, cond2) -> show_condition cond1 ^ " AND " ^ show_condition cond2
+  | Or (cond1, cond2) -> show_condition cond1 ^ " OR " ^ show_condition cond2
+  | Not cond -> "NOT " ^ show_condition cond
 
 (* Generate OCaml code *)
 let rec generate_code = function
@@ -109,3 +115,6 @@ and generate_condition_code = function
   | GreaterEqual (col, value) -> Printf.sprintf "GreaterEqual(\"%s\", %s)" col (string_of_value value)
   | NotEqual (col, value) -> Printf.sprintf "NotEqual(\"%s\", %s)" col (string_of_value value)
   | Equal (col, value) -> Printf.sprintf "Equal(\"%s\", %s)" col (string_of_value value)
+  | And (c1, c2) -> Printf.sprintf "And(%s, %s)" (generate_condition_code c1) (generate_condition_code c2)
+  | Or (c1, c2) -> Printf.sprintf "Or(%s, %s)" (generate_condition_code c1) (generate_condition_code c2)
+  | Not c -> Printf.sprintf "Not(%s)" (generate_condition_code c)

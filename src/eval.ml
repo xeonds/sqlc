@@ -57,7 +57,7 @@ let value_to_string = function
   | BoolValue v -> string_of_bool v
 
 (* 条件表达式求值 *)
-let eval_cond cond row headers = match cond with
+let rec eval_cond cond row headers = match cond with
   | LessThan (col, value) -> (match List.assoc col (List.mapi (fun i h -> (h, i)) headers), value with
     | i, IntValue v -> int_of_string (List.nth row i) < v
     | i, FloatValue v -> float_of_string (List.nth row i) < v
@@ -84,6 +84,9 @@ let eval_cond cond row headers = match cond with
     | i, FloatValue v -> float_of_string (List.nth row i) <> v
     | i, StringValue v -> List.nth row i <> v
     | i, BoolValue v -> bool_of_string (List.nth row i) <> v)
+  | And (cond1, cond2) -> (eval_cond cond1 row headers) && (eval_cond cond2 row headers)
+  | Or (cond1, cond2) -> (eval_cond cond1 row headers) || (eval_cond cond2 row headers)
+  | Not cond -> not (eval_cond cond row headers)
 
 (* 插入数据到表中 *)
 let insert_into table_name columns values =
