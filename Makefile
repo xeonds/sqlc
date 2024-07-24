@@ -1,4 +1,4 @@
-OCAMLC_FLAGS = -package angstrom -package csv -package unix -package llvm
+OCAMLC_FLAGS = -package angstrom -package csv -package unix
 
 all: sql sqlc
 
