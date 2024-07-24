@@ -50,6 +50,7 @@ column_def:
   | IDENTIFIER data_type { ($1, $2) }
 
 columns:
+  | STAR { [] }
   | IDENTIFIER COMMA columns { $1 :: $3 }
   | IDENTIFIER { [$1] }
 

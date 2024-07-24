@@ -110,7 +110,9 @@ let select columns table_name condition =
       (* Read header *)
       let headers = Csv.next csv in
       let _ = Csv.next csv in
-      let col_indices = List.map (fun col -> List.assoc col (List.mapi (fun i h -> (h, i)) headers)) columns in
+      let col_indices = List.map (fun col -> List.assoc col (List.mapi (fun i h -> (h, i)) headers)) (match columns with 
+        | [] -> headers
+        | _ -> columns) in
       (* Filter and print rows *)
       Csv.iter ~f:(fun row ->
         let selected_values = List.map (fun i -> List.nth row i) col_indices in
