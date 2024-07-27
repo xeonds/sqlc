@@ -18,6 +18,21 @@ let use_database db_name =
   else
     Printf.printf "Database %s does not exist.\n" db_name
 
+(* 类型名转类型 *)
+let type_of_name = function
+  | "INT" -> IntType
+  | "STRING" -> StringType
+  | "FLOAT" -> FloatType
+  | "BOOL" -> BoolType
+  | _ -> raise (Invalid_argument "Invalid type")
+
+(* 类型转类型名 *)
+let name_of_type = function
+  | IntType -> "INT"
+  | StringType -> "STRING"
+  | FloatType -> "FLOAT"
+  | BoolType -> "BOOL"
+
 (* 创建表（CSV文件） *)
 let create_table table_name columns =
   match !current_db with
@@ -94,9 +109,20 @@ let insert_into table_name columns values =
   | Some db_name ->
     let table_path = Filename.concat db_name (table_name ^ ".csv") in
     if Sys.file_exists table_path then
-      let csv = Csv.to_channel (open_out_gen [Open_append] 0o666 table_path) in
-      Csv.output_record csv (List.map value_to_string values);
-      Csv.close_out csv
+      let csvIn = Csv.of_channel (open_in table_path) in
+      let csvOut = Csv.to_channel (open_out_gen [Open_append] 0o666 table_path) in
+      let headers = Csv.next csvIn in
+      let types = List.map2 (fun h t -> (h, type_of_name t)) headers (Csv.next csvIn) in
+      Csv.output_record csvOut (List.map (fun header -> 
+        match List.assoc_opt header (List.mapi (fun i h -> (h, i)) columns) with
+        | Some index -> value_to_string (List.nth values index)
+        | None -> value_to_string (match List.assoc header types with
+          | IntType -> IntValue 0
+          | FloatType -> FloatValue 0.0
+          | StringType -> StringValue ""
+          | BoolType -> BoolValue false)) headers);
+      Csv.close_in csvIn;
+      Csv.close_out csvOut;
     else Printf.printf "Table %s does not exist.\n" table_name
   | None -> Printf.printf "No database selected.\n"
 
