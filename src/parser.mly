@@ -75,9 +75,9 @@ opt_where:
   | { None }
 
 condition:
+  | NOT condition { Not $2 }
   | condition AND condition { And($1, $3) }
   | condition OR condition { Or($1, $3) }
-  | NOT condition { Not $2 }
   | IDENTIFIER LESS value { LessThan($1, $3) }
   | IDENTIFIER GREATER value { GreaterThan($1, $3) }
   | IDENTIFIER LESS_EQUAL value { LessEqual($1, $3) }
