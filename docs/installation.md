@@ -1,37 +1,40 @@
 # Installation
 
-To install the software, follow these steps:
+## Binary Installation
 
-1. Download the latest version of the software from the official website.
-2. Open the downloaded file and run the installer.
-3. Follow the on-screen instructions to complete the installation process.
-4. Once the installation is complete, you can launch the software.
+You can download the pre-built binary from the GitHub releases page.
+
+## Source Code Installation
+
+To install from source code, follow these steps:
+
+Ensure the following dependencies are installed on your system:
+
+- OCaml 5.0 or later
+- OPAM 2.0 or later
+- GNU Make 4.0 or later
+
+1. Clone the repository from GitHub using the command `git clone https://github.com/xeonds/sqlc`
+2. Navigate to the cloned repository directory using the command `cd sqlc`
+3. Run the command `make sql` to compile the SQL parser.
+
+Once the build is complete, you can see the compiled binary at `./sql`.
 
 ## System Requirements
 
 Before installing the software, make sure your system meets the following requirements:
 
-- Operating System: Windows 10, macOS 10.14 or later, or Linux (Ubuntu 18.04 or later)
+- Operating System: Windows 10, macOS 10.14 or later, or Linux (Ubuntu 20.04 or later)
 - Processor: Intel Core i5 or equivalent
-- Memory: 8GB RAM
-- Storage: 100MB of free disk space
+- Memory: 512MB RAM
+- Storage: 256MB of free disk space
 
 ## Troubleshooting
 
-If you encounter any issues during the installation process, try the following troubleshooting steps:
+If you encounter any issues during the software running process, please check the following:
 
-- Make sure you have administrative privileges on your system.
-- Disable any antivirus or firewall software temporarily.
-- Check if there are any known issues or compatibility problems with your operating system.
+- Ensure that all dependencies are installed correctly.
+- Verify that the software is compatible with your operating system.
+- Check the system logs for any error messages that may indicate the cause of the issue.
 
-If the issue persists, please contact our support team for further assistance.
-
-## Uninstallation
-
-To uninstall the software, follow these steps:
-
-1. Open the Control Panel on your computer.
-2. Navigate to "Programs" or "Programs and Features".
-3. Find the software in the list of installed programs.
-4. Click on the software and select "Uninstall".
-5. Follow the on-screen instructions to complete the uninstallation process.
+If the issue persists, please open an issue on the GitHub repository and provide as much information as possible to help us resolve the problem.
