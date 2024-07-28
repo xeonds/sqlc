@@ -8,7 +8,7 @@ sqlc: src/ast.cmo src/parser.cmo src/lexer.cmo src/eval.cmo src/main.cmo src/com
 
 sql: src/ast.cmo src/parser.cmo src/lexer.cmo src/eval.cmo src/main.cmo
 	cd src && \
-	ocamlfind ocamlc $(OCAMLC_FLAGS) -linkpkg -o ../sql ast.cmo parser.cmo lexer.cmo eval.cmo
+	ocamlfind ocamlc $(OCAMLC_FLAGS) -linkpkg -o ../sql ast.cmo parser.cmo lexer.cmo eval.cmo main.cmo
 
 src/ast.cmo: src/ast.ml
 	cd src && ocamlfind ocamlc -c ast.ml

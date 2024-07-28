@@ -235,20 +235,3 @@ let eval_expr = function
   | DropTable name -> drop_table name
   | DropDatabase name -> drop_database name
   | Exit -> exit_program ()
-
-(* 主程序循环 *)
-let rec main_loop () =
-  try
-    Printf.printf ">>> ";
-    let line = read_line () in
-    let lexbuf = Lexing.from_string line in
-    let parsed_expr = Parser.main Lexer.token lexbuf in
-    eval_expr parsed_expr;
-    main_loop ()
-  with
-  | Lexer.Lexing_error msg -> Printf.printf "Lexer error: %s\n" msg; main_loop ()
-  | Parsing.Parse_error -> Printf.printf "Parser error\n"; main_loop ()
-  | End_of_file -> ()
-
-(* 程序入口 *)
-let () = main_loop ()

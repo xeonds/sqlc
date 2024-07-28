@@ -1,27 +1,21 @@
 open Printf
 open Lexing
+open Eval
 
-let parse_with_error lexbuf =
-  try
-    let result = Parser.main Lexer.token lexbuf in
-    Some(result)
-  with
-  | Lexer.Lexing_error msg ->
-      eprintf "Lexing error: %s\n%!" msg;
-      None
-  | Parsing.Parse_error ->
-      eprintf "At offset %d: syntax error.\n%!" (Lexing.lexeme_start lexbuf);
-      None
-
+(* 主程序循环 *)
 let rec repl () =
-  printf "> ";
-  flush stdout;
-  let input = read_line () in
-  let lexbuf = from_string input in
-  match parse_with_error lexbuf with
-  | Some(ast) ->
-      printf "Parsed: %s\n" (Ast.show_expr ast); (* 确保在 ast.ml 文件中实现 show_expr 函数 *)
-      repl ()
-  | None -> repl ()
+  try
+    Printf.printf ">>> ";
+    let line = read_line () in
+    let lexbuf = Lexing.from_string line in
+    let parsed_expr = Parser.main Lexer.token lexbuf in
+    eval_expr parsed_expr;
+    repl ()
+  with
+  | Lexer.Lexing_error msg -> Printf.printf "Lexer error: %s\n" msg; repl ()
+  | Parsing.Parse_error -> Printf.printf "Parser error\n"; repl ()
+  | End_of_file -> ()
 
+(* 程序入口 *)
 let () = repl ()
+
