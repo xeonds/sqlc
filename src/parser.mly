@@ -12,12 +12,14 @@
 %token <float> FLOAT
 %token <bool> BOOL
 %token CREATE USE SHOW INSERT INTO SELECT UPDATE SET DROP DELETE FROM WHERE EXIT
-%token DATABASES DATABASE TABLES TABLE VALUES
+%token DATABASES DATABASE TABLES TABLE VALUES JOIN ON AS
+%token BEGIN TRANSACTION COMMIT ROLLBACK LOCK UNLOCK
+%token VIEW INDEX LOG
 %token LPAREN RPAREN COMMA SEMICOLON
 %token STAR DOT MOD EQUALS LESS GREATER LESS_EQUAL GREATER_EQUAL NOT_EQUAL PLUS MINUS TIMES DIVIDE
 %token EOF
 %token INT_TYPE STRING_TYPE FLOAT_TYPE BOOL_TYPE
-%token AND OR NOT
+%token AND OR NOT ORDER BY LIMIT
 
 %start main
 %type <Ast.expr> main
@@ -25,7 +27,6 @@
 %% /* Grammar rules and actions */
 
 main:
-  | statement { $1 }
   | statement SEMICOLON { $1 }
 
 statement:
@@ -75,6 +76,7 @@ opt_where:
   | { None }
 
 condition:
+  | LPAREN condition RPAREN { $2 }
   | NOT condition { Not $2 }
   | condition AND condition { And($1, $3) }
   | condition OR condition { Or($1, $3) }

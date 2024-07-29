@@ -33,6 +33,19 @@ rule token = parse
     | "tables" -> TABLES 
     | "table" -> TABLE 
     | "values" -> VALUES 
+    | "join"  -> JOIN
+    | "on"    -> ON
+    | "as"    -> AS
+    | "order" -> ORDER
+    | "begin" -> BEGIN
+    | "transaction" -> TRANSACTION
+    | "commit" -> COMMIT
+    | "rollback" -> ROLLBACK
+    | "lock" -> LOCK
+    | "unlock" -> UNLOCK
+    | "view" -> VIEW
+    | "index" -> INDEX
+    | "log" -> LOG
     | "int" -> INT_TYPE 
     | "string" -> STRING_TYPE 
     | "float" -> FLOAT_TYPE 
