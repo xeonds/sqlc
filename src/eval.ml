@@ -1,4 +1,3 @@
-open Csv
 open Ast
 
 (* 当前使用的数据库路径 *)
@@ -162,7 +161,7 @@ let update_table table_name column value condition =
       let types = List.hd (List.tl data_origin) in
       let records = List.tl (List.tl data_origin) in
       let col_index = List.assoc column (List.mapi (fun i h -> (h, i)) headers) in
-      let data_updated = List.mapi (fun i row -> 
+      let data_updated = List.mapi (fun _ row -> 
         let row_match_cond = match condition with
           | None -> true
           | Some cond -> (eval_cond cond row headers) in
@@ -186,7 +185,7 @@ let delete_from table_name condition =
       let headers = List.hd data_origin in
       let types = List.hd (List.tl data_origin) in
       let records = List.tl (List.tl data_origin) in
-      let data_deleted = List.mapi (fun i row -> if (
+      let data_deleted = List.mapi (fun _ row -> if (
         match condition with
         | None -> true
         | Some cond -> (eval_cond cond row headers)

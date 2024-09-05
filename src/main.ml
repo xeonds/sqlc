@@ -1,5 +1,3 @@
-open Printf
-open Lexing
 open Eval
 
 (* 主程序循环 *)

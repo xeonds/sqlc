@@ -1,0 +1,8 @@
+(executable
+ (name main)
+ (public_name sql)
+ (modules ast main eval lexer parser)
+ (libraries angstrom csv unix))
+
+(ocamllex lexer)
+(ocamlyacc parser)

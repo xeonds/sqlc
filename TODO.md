@@ -1,0 +1,3 @@
+- insert type verification
+- interactive sql tab completion&arrow navigation
+- headless mode for sql file execution
