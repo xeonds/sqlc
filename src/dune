@@ -2,7 +2,7 @@
  (name main)
  (public_name sql)
  (modules ast main eval lexer parser)
- (libraries angstrom csv unix))
+ (libraries angstrom csv unix cmdliner))
 
 (ocamllex lexer)
 (ocamlyacc parser)

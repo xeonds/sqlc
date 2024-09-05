@@ -12,8 +12,9 @@ let create_database db_name =
 
 (* 切换数据库 *)
 let use_database db_name =
-  if Sys.file_exists db_name && Sys.is_directory db_name then
-    current_db := Some db_name
+  if Sys.file_exists db_name && Sys.is_directory db_name then (
+    current_db := Some db_name;
+    Printf.printf "Switched to database %s.\n" db_name)
   else
     Printf.printf "Database %s does not exist.\n" db_name
 

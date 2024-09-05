@@ -1,3 +1,4 @@
 sql
 test
 _build/
+.vscode/
