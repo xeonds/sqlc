@@ -1,3 +1,9 @@
-- insert type verification
-- interactive sql tab completion&arrow navigation
-- headless mode for sql file execution
+- [x]支持INSERT后跟随多个VALUES
+- [x]插入类型验证
+- [ ]交互tab补全&方向键移动+历史命令
+- [ ]多行sql语句
+- [ ]注释
+- [x]无头模式执行sql文件
+- [ ]多表join查询
+- [ ]索引功能
+- [ ]视图功能

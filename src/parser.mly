@@ -28,6 +28,7 @@
 
 main:
   | statement SEMICOLON { $1 }
+  | EOF { Exit }
 
 statement:
   | SELECT columns FROM IDENTIFIER opt_where { Select($2, $4, $5) }
@@ -36,7 +37,7 @@ statement:
   | CREATE TABLE IDENTIFIER LPAREN table_columns RPAREN { CreateTable($3, $5) }
   | SHOW TABLES { ShowTables }
   | SHOW DATABASES { ShowDatabases }
-  | INSERT INTO IDENTIFIER LPAREN columns RPAREN VALUES LPAREN values RPAREN { InsertInto($3, $5, $9) }
+  | INSERT INTO IDENTIFIER LPAREN columns RPAREN VALUES values { InsertInto($3, $5, $8) }
   | UPDATE IDENTIFIER SET IDENTIFIER EQUALS value opt_where { Update($2, $4, $6, $7) }
   | DELETE FROM IDENTIFIER opt_where { Delete($3, $4) }
   | DROP TABLE IDENTIFIER { DropTable $3 }
@@ -56,7 +57,11 @@ columns:
   | IDENTIFIER { [$1] }
 
 values:
-  | value COMMA values { $1 :: $3 }
+  | LPAREN values_def RPAREN values { $2 :: $4 }
+  | LPAREN values_def RPAREN { [$2] }
+
+values_def:
+  | value COMMA values_def { $1 :: $3 }
   | value { [$1] }
 
 value:

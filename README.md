@@ -22,7 +22,7 @@ sqlc currently supports the following SQL statements:
 - `CREATE TABLE IDENTIFIER ( table_columns );`
 - `SHOW TABLES;`
 - `SHOW DATABASES;`
-- `INSERT INTO IDENTIFIER ( column1, column2, ... ) VALUES ( value1, value2, ... );`
+- `INSERT INTO IDENTIFIER ( column1, column2, ... ) VALUES ( value1, value2, ... ) [ ( value1, value2, ... ) ... ];`
 - `UPDATE IDENTIFIER SET IDENTIFIER EQUALS value [ WHERE condition ];`
 - `DELETE FROM IDENTIFIER [ WHERE condition ];`
 - `DROP TABLE IDENTIFIER;`

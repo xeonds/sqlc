@@ -65,11 +65,34 @@ let show_databases () =
   | exception Sys_error msg -> Printf.printf "Error: %s\n" msg
 
 (* 将value转换为字符串 *)
-let value_to_string = function
+let string_of_value = function
   | IntValue v -> string_of_int v
   | StringValue v -> v
   | FloatValue v -> string_of_float v
   | BoolValue v -> string_of_bool v
+
+let value_of_string = function
+  | "true" -> BoolValue true
+  | "false" -> BoolValue false
+  | s -> match int_of_string_opt s with
+    | Some i -> IntValue i
+    | None -> match float_of_string_opt s with
+      | Some f -> FloatValue f
+      | None -> StringValue s
+
+let type_of_string string = match value_of_string string with
+  | IntValue _ -> IntType
+  | StringValue _ -> StringType
+  | FloatValue _ -> FloatType
+  | BoolValue _ -> BoolType
+
+let type_of_data data = match data with
+  | IntValue _ -> IntType
+  | StringValue _ -> StringType
+  | FloatValue _ -> FloatType
+  | BoolValue _ -> BoolType
+
+(* 条件表达式 *)
 
 (* 条件表达式求值 *)
 let rec eval_cond cond row headers = match cond with
@@ -113,14 +136,23 @@ let insert_into table_name columns values =
       let csvOut = Csv.to_channel (open_out_gen [Open_append] 0o666 table_path) in
       let headers = Csv.next csvIn in
       let types = List.map2 (fun h t -> (h, type_of_name t)) headers (Csv.next csvIn) in
-      Csv.output_record csvOut (List.map (fun header -> 
+      List.iteri (fun row value -> Csv.output_record csvOut (List.map (fun header -> 
         match List.assoc_opt header (List.mapi (fun i h -> (h, i)) columns) with
-        | Some index -> value_to_string (List.nth values index)
-        | None -> value_to_string (match List.assoc header types with
+        | Some index -> (
+          let _,t = List.nth types index in
+          let tt = type_of_data (List.nth value index) in 
+          if t != tt then Printf.printf "Type mismatch for row %d, column %s\n; Replaced with default value" row header;
+          if t == tt then string_of_value(List.nth value index)
+            else string_of_value (match t with
+              | IntType -> IntValue 0
+              | FloatType -> FloatValue 0.0
+              | StringType -> StringValue ""
+              | BoolType -> BoolValue false))
+        | None -> string_of_value (match List.assoc header types with
           | IntType -> IntValue 0
           | FloatType -> FloatValue 0.0
           | StringType -> StringValue ""
-          | BoolType -> BoolValue false)) headers);
+          | BoolType -> BoolValue false)) headers)) values;
       Csv.close_in csvIn;
       Csv.close_out csvOut;
     else Printf.printf "Table %s does not exist.\n" table_name
@@ -166,7 +198,7 @@ let update_table table_name column value condition =
         let row_match_cond = match condition with
           | None -> true
           | Some cond -> (eval_cond cond row headers) in
-        if row_match_cond then List.mapi (fun j v -> if j == col_index then value_to_string value else v) row
+        if row_match_cond then List.mapi (fun j v -> if j == col_index then string_of_value value else v) row
         else row) records in
       let csv = Csv.to_channel (open_out table_path) in
       Csv.output_record csv headers;
