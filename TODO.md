@@ -7,3 +7,9 @@
 - [ ]多表join查询
 - [ ]索引功能
 - [ ]视图功能
+- [ ]提供用于web后端能力的标准库
+    - [ ]文件i/o
+    - [ ]http api库
+    - [ ]json序列化/反序列化支持
+    - [ ]yaml配置解析
+- [ ]more modern sql with variables & http server & io support & more
