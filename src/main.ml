@@ -22,7 +22,7 @@ let rec repl () =
     let line = read_line () in
     let lexbuf = Lexing.from_string line in
     let parsed_expr = Parser.program Lexer.token lexbuf in
-    let result = QueryEngine.execute parsed_expr in
+    let result = Engine.execute parsed_expr in
     Printf.printf "%s\n" (Types.string_of_table result);
     repl ()
   with
@@ -43,7 +43,7 @@ let main filename =
           try
             while true do
               let parsed_expr = Parser.program Lexer.token lexbuf in
-              let result = QueryEngine.execute parsed_expr in
+              let result = Engine.execute parsed_expr in
               Printf.printf "%s\n" (Types.string_of_table result);
             done
           with
