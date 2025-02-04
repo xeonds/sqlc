@@ -1,12 +1,7 @@
 /* parser.mly */
 /* Simple SQL statement parser */
-
-%{
-  open Ast
-%}
-
 /* Tokens */
-%token <string> IDENTIFIER
+%token <string> IDENTIFIER FILE
 %token <int> INT
 %token <string> STRING
 %token <float> FLOAT
@@ -21,27 +16,23 @@
 %token INT_TYPE STRING_TYPE FLOAT_TYPE BOOL_TYPE
 %token AND OR NOT ORDER BY LIMIT
 
-%start main
-%type <Ast.expr> main
+%start program
+%type <Db_engine.Types.statement> program
 
 %% /* Grammar rules and actions */
 
-main:
+program:
   | statement SEMICOLON { $1 }
   | EOF { Exit }
 
 statement:
-  | SELECT columns FROM IDENTIFIER opt_where { Select($2, $4, $5) }
-  | CREATE DATABASE IDENTIFIER { CreateDatabase $3 }
-  | USE DATABASE IDENTIFIER { UseDatabase $3 }
-  | CREATE TABLE IDENTIFIER LPAREN table_columns RPAREN { CreateTable($3, $5) }
+  | SELECT columns FROM FILE opt_where { Select($2, $4, $5) }
+  | CREATE TABLE FILE LPAREN table_columns RPAREN { CreateTable($3, $5) }
   | SHOW TABLES { ShowTables }
-  | SHOW DATABASES { ShowDatabases }
-  | INSERT INTO IDENTIFIER LPAREN columns RPAREN VALUES values { InsertInto($3, $5, $8) }
-  | UPDATE IDENTIFIER SET IDENTIFIER EQUALS value opt_where { Update($2, $4, $6, $7) }
-  | DELETE FROM IDENTIFIER opt_where { Delete($3, $4) }
-  | DROP TABLE IDENTIFIER { DropTable $3 }
-  | DROP DATABASE IDENTIFIER { DropDatabase $3 }
+  | INSERT INTO FILE LPAREN columns RPAREN VALUES values { InsertInto($3, $5, $8) }
+  | UPDATE FILE SET IDENTIFIER EQUALS value opt_where { Update($2, $4, $6, $7) }
+  | DELETE FROM FILE opt_where { DeleteFrom($3, $4) }
+  | DROP TABLE FILE { DropTable $3 }
   | EXIT { Exit }
 
 table_columns:
@@ -49,12 +40,18 @@ table_columns:
   | column_def { [$1] }
 
 column_def:
-  | IDENTIFIER data_type { ($1, $2) }
+  | IDENTIFIER dtype { ($1, $2) }
 
 columns:
-  | STAR { [] }
+  | STAR { ["*"] }
   | IDENTIFIER COMMA columns { $1 :: $3 }
   | IDENTIFIER { [$1] }
+
+dtype:
+  | INT_TYPE { Int }
+  | STRING_TYPE { String }
+  | FLOAT_TYPE { Float }
+  | BOOL_TYPE { Bool}
 
 values:
   | LPAREN values_def RPAREN values { $2 :: $4 }
@@ -65,29 +62,35 @@ values_def:
   | value { [$1] }
 
 value:
-  | INT { IntValue $1 }
-  | STRING { StringValue $1 }
-  | FLOAT { FloatValue $1 }
-  | BOOL { BoolValue $1 }
-
-data_type:
-  | INT_TYPE { IntType }
-  | STRING_TYPE { StringType }
-  | FLOAT_TYPE { FloatType }
-  | BOOL_TYPE { BoolType }
+  | INT { VInt $1 }
+  | STRING { VString $1 }
+  | FLOAT { VFloat $1 }
+  | BOOL { VBool $1 }
 
 opt_where:
-  | WHERE condition { Some $2 }
+  | WHERE expr { Some $2 }
   | { None }
 
-condition:
-  | LPAREN condition RPAREN { $2 }
-  | NOT condition { Not $2 }
-  | condition AND condition { And($1, $3) }
-  | condition OR condition { Or($1, $3) }
-  | IDENTIFIER LESS value { LessThan($1, $3) }
-  | IDENTIFIER GREATER value { GreaterThan($1, $3) }
-  | IDENTIFIER LESS_EQUAL value { LessEqual($1, $3) }
-  | IDENTIFIER GREATER_EQUAL value { GreaterEqual($1, $3) }
-  | IDENTIFIER NOT_EQUAL value { NotEqual($1, $3) }
-  | IDENTIFIER EQUALS value { Equal($1, $3) }
+expr:
+  | value { Literal $1 }
+  | IDENTIFIER { Column $1 }
+  | expr PLUS expr { BinOp($1, "+", $3) }
+  | expr MINUS expr { BinOp($1, "-", $3) }
+  | expr TIMES expr { BinOp($1, "*", $3) }
+  | expr DIVIDE expr { BinOp($1, "/", $3) }
+  | expr MOD expr { BinOp($1, "%", $3) }
+  | expr EQUALS expr { BinOp($1, "=", $3) }
+  | expr LESS expr { BinOp($1, "<", $3) }
+  | expr GREATER expr { BinOp($1, ">", $3) }
+  | expr LESS_EQUAL expr { BinOp($1, "<=", $3) }
+  | expr GREATER_EQUAL expr { BinOp($1, ">=", $3) }
+  | expr NOT_EQUAL expr { BinOp($1, "<>", $3) }
+  | expr AND expr { BinOp($1, "AND", $3) }
+  | expr OR expr { BinOp($1, "OR", $3) }
+  | LPAREN expr RPAREN { $2 }
+  | NOT expr { Call("NOT", [$2]) }
+  | IDENTIFIER LPAREN expr_list RPAREN { Call($1, $3) }
+
+expr_list:
+  | expr COMMA expr_list { $1 :: $3 }
+  | expr { [$1] }

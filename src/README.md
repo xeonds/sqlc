@@ -12,10 +12,10 @@ the http-lib should run at backend, when executed the part, just open a thread a
 
 and it will show logs to stdout when handle request, and can be set to be silent.
 
-also, support interactions with other stdlib components, like run sql from http content using sql_engine, 
+also, support interactions with other stdlib components, like run sql from http content using db_engine, 
 storage content to filesystem, and string process using io_engine, data manipulation using data_engine, etc.
 
-## sql_engine
+## db_engine
 
 provides stdlib for:
 

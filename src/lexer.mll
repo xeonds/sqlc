@@ -74,5 +74,6 @@ rule token = parse
   | "%"     { MOD }
   | "("     { LPAREN }
   | ")"     { RPAREN }
+  | ['a'-'z' 'A'-'Z' '0'-'9' '/' '.' '_']+ as path { FILE path }
   | eof     { EOF }
   | _ as c  { raise (Lexing_error (Printf.sprintf "Unexpected character: %c" c)) }
