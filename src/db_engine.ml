@@ -52,12 +52,24 @@ module Types = struct
     | Call of string * expr list
 
   type statement =
-    | Select of string list * string * expr option
-    | Join of string * string * expr
+    | Select of string list * string * (string * expr) option * expr option
     | CreateTable of string * (string * dtype) list
     | InsertInto of string * string list * value list list
     | Update of string * string * value * expr option
     | DeleteFrom of string * expr option
+    | ShowTables
+    | DropTable of string
+    | LoadObject of expr
+    | StoreObject of expr
+    | Exit
+
+  type eval =
+    | Select of string list * table * expr option
+    | Join of table * table * expr
+    | CreateTable of string * (string * dtype) list
+    | InsertInto of table * string list * value list list
+    | Update of table * string * value * expr option
+    | DeleteFrom of table * expr option
     | ShowTables
     | DropTable of string
     | LoadObject of expr
@@ -249,33 +261,30 @@ module Engine = struct
   (** 执行查询语句返回结果表 *)
   let execute = function
     | Select (cols, table, where) ->
-        let tbl = Database.load_table table in
         let rows = match where with
-          | None -> tbl.data
-          | Some cond -> List.filter (fun row -> eval_cond cond row tbl.schema) tbl.data in
+          | None -> table.data
+          | Some cond -> List.filter (fun row -> eval_cond cond row table.schema) table.data in
         let filtered = 
           if List.mem "*" cols then rows
           else
-            List.map (fun row -> List.map (fun col -> List.assoc col (List.combine (List.map (fun f -> f.name) tbl.schema) row)) cols) rows in
-        {tbl with data=filtered}
+            List.map (fun row -> List.map (fun col -> List.assoc col (List.combine (List.map (fun f -> f.name) table.schema) row)) cols) rows in
+        {table with data=filtered}
     | Join (left, right, on) ->
-      let left_tbl = Database.load_table left in
-      let right_tbl = Database.load_table right in
       let left_col, right_col = match on with
-        | BinOp (Column c, "=", Column c') when List.mem c (List.map (fun f -> f.name) left_tbl.schema) && List.mem c' (List.map (fun f -> f.name) right_tbl.schema) -> c, c'
+        | BinOp (Column c, "=", Column c') when List.mem c (List.map (fun f -> f.name) left.schema) && List.mem c' (List.map (fun f -> f.name) right.schema) -> c, c'
         | _ -> failwith "Invalid join condition" in
-      let left_index = List.assoc left_col (List.mapi (fun i f -> (f.name, i)) left_tbl.schema) in
-      let right_index = List.assoc right_col (List.mapi (fun i f -> (f.name, i)) right_tbl.schema) in
+      let left_index = List.assoc left_col (List.mapi (fun i f -> (f.name, i)) left.schema) in
+      let right_index = List.assoc right_col (List.mapi (fun i f -> (f.name, i)) right.schema) in
       let right_map = List.fold_left (fun acc row ->
         let key = List.nth row right_index in
         let values = try List.assoc key acc with Not_found -> [] in
-        (key, row :: values) :: List.remove_assoc key acc) [] right_tbl.data in
+        (key, row :: values) :: List.remove_assoc key acc) [] right.data in
       let joined = List.fold_left (fun acc row1 ->
         let key = List.nth row1 left_index in
         match List.assoc_opt key right_map with
         | Some rows2 -> List.rev_append (List.map (fun row2 -> row1 @ row2) rows2) acc
-        | None -> acc) [] left_tbl.data in
-      {schema=left_tbl.schema @ right_tbl.schema; data=List.rev joined; path = ""}
+        | None -> acc) [] left.data in
+      {schema=left.schema @ right.schema; data=List.rev joined; path = ""}
     | CreateTable (name, cols) -> 
       let table_path = name ^ ".csv" in
       if Sys.file_exists table_path then
@@ -309,36 +318,31 @@ module Engine = struct
         print_tree "." "";
         {schema=[]; data=[]; path=""}
     | InsertInto (table, cols, vals) -> 
-        let tbl = Database.load_table table in
         let rows = List.map (fun row -> 
-          let res = List.map (fun f -> 
+          List.map (fun f -> 
             match List.assoc_opt f.name (List.combine cols row) with
             | Some v -> v
-            | None -> default_value f.dtype) tbl.schema in
-          res) vals in
-        List.iter (fun row -> Database.append_row tbl row) rows;
-        Database.save_table tbl;
-        tbl
+            | None -> default_value f.dtype
+            ) table.schema
+          ) vals in
+        List.iter (fun row -> Database.append_row table row) rows;
+        table
     | Update (table, col, value, cond) -> 
-        let tbl = Database.load_table table in
-        let col_index = List.assoc col (List.mapi (fun i f -> (f.name, i)) tbl.schema) in
+        let col_index = List.assoc col (List.mapi (fun i f -> (f.name, i)) table.schema) in
         let data_updated = List.map (fun row -> 
           if (match cond with
             | None -> true
-            | Some c -> eval_cond c row tbl.schema) then
+            | Some c -> eval_cond c row table.schema) then
             List.mapi (fun i v -> if i == col_index then value else v) row else row
-            ) tbl.data in
-        tbl.data <- data_updated;
-        Database.save_table tbl;
-        tbl
+            ) table.data in
+        table.data <- data_updated;
+        table
     | DeleteFrom (table, cond) ->
-        let tbl = Database.load_table table in
         let data_deleted = List.filter (fun row -> match cond with
           | None -> true
-          | Some c -> not (eval_cond c row tbl.schema)) tbl.data in
-        tbl.data <- data_deleted;
-        Database.save_table tbl;
-        tbl
+          | Some c -> not (eval_cond c row table.schema)) table.data in
+        table.data <- data_deleted;
+        table
     | DropTable name -> 
         Sys.remove name;
         {schema=[]; data=[]; path=name}

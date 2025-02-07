@@ -1,5 +1,6 @@
 open Cmdliner
 open Db_engine
+open Db_engine.Types
 
 (* 定义文件名参数 *)
 let filename =
@@ -15,6 +16,35 @@ let read_file filename =
     Some content
   with _ -> None
 
+let eval_sql: (statement->table) = function
+      | Select (cols, from, join, where) -> 
+          let table = Database.load_table (from ^ ".csv") in
+          if join = None then
+            Engine.execute (Select (cols, table, where))
+          else
+            let (from2, on) = Option.get join in
+            let table2 = Database.load_table (from2 ^ ".csv") in
+            let joined_table = Engine.execute (Join (table, table2, on)) in
+            Engine.execute (Select (cols, joined_table, where))
+      | CreateTable (name, columns) -> 
+          Engine.execute (CreateTable (name, columns))
+      | InsertInto (table, columns, values) -> 
+          let table = Database.load_table (table ^ ".csv") in
+          let result = Engine.execute (InsertInto (table, columns, values)) in
+          Database.save_table table;
+          result
+      | Update (table, column, value, where) -> 
+          let table = Database.load_table ( table ^ ".csv" ) in
+          Engine.execute (Update (table, column, value, where))
+      | DeleteFrom (table, where) -> 
+          let table = Database.load_table (table^".csv") in
+          Engine.execute (DeleteFrom (table, where))
+      | ShowTables -> Engine.execute ShowTables
+      | DropTable table -> Engine.execute (DropTable table)
+      | LoadObject table -> Engine.execute (LoadObject table)
+      | StoreObject table -> Engine.execute (StoreObject table)
+      | Exit -> exit 0
+
 (* 交互式终端 *)
 let rec repl () =
   try
@@ -22,7 +52,7 @@ let rec repl () =
     let line = read_line () in
     let lexbuf = Lexing.from_string line in
     let parsed_expr = Parser.program Lexer.token lexbuf in
-    let result = Engine.execute parsed_expr in
+    let result = eval_sql parsed_expr in
     Printf.printf "%s\n" (Types.string_of_table result);
     repl ()
   with
@@ -43,7 +73,7 @@ let main filename =
           try
             while true do
               let parsed_expr = Parser.program Lexer.token lexbuf in
-              let result = Engine.execute parsed_expr in
+              let result = eval_sql parsed_expr in
               Printf.printf "%s\n" (Types.string_of_table result);
             done
           with

@@ -57,6 +57,7 @@ rule token = parse
     | "false" -> BOOL false 
     | _ -> IDENTIFIER id
   }
+  | ['a'-'z' 'A'-'Z' '0'-'9' '/' '.' '_']+ as path { FILE path }
   | '"'[^'"']*'"' as str { STRING (String.sub str 1 (String.length str - 2)) }
   | "*"     { STAR }
   | ","     { COMMA }
@@ -74,6 +75,5 @@ rule token = parse
   | "%"     { MOD }
   | "("     { LPAREN }
   | ")"     { RPAREN }
-  | ['a'-'z' 'A'-'Z' '0'-'9' '/' '.' '_']+ as path { FILE path }
   | eof     { EOF }
   | _ as c  { raise (Lexing_error (Printf.sprintf "Unexpected character: %c" c)) }

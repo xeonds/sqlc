@@ -26,7 +26,7 @@ program:
   | EOF { Exit }
 
 statement:
-  | SELECT columns FROM FILE opt_where { Select($2, $4, $5) }
+  | SELECT columns FROM FILE opt_join opt_where { Select($2, $4, $5, $6) }
   | CREATE TABLE FILE LPAREN table_columns RPAREN { CreateTable($3, $5) }
   | SHOW TABLES { ShowTables }
   | INSERT INTO FILE LPAREN columns RPAREN VALUES values { InsertInto($3, $5, $8) }
@@ -34,6 +34,14 @@ statement:
   | DELETE FROM FILE opt_where { DeleteFrom($3, $4) }
   | DROP TABLE FILE { DropTable $3 }
   | EXIT { Exit }
+
+opt_join:
+  | JOIN FILE ON expr { Some ($2, $4) }
+  | { None }
+
+opt_where:
+  | WHERE expr { Some $2 }
+  | { None }
 
 table_columns:
   | column_def COMMA table_columns { $1 :: $3 }
@@ -66,10 +74,6 @@ value:
   | STRING { VString $1 }
   | FLOAT { VFloat $1 }
   | BOOL { VBool $1 }
-
-opt_where:
-  | WHERE expr { Some $2 }
-  | { None }
 
 expr:
   | value { Literal $1 }

@@ -2,7 +2,8 @@
  (name main)
  (public_name sql)
  (modules main http_engine db_engine lexer parser)
- (libraries angstrom csv unix cmdliner lwt cohttp cohttp-lwt-unix yojson lwt_ppx))
+ (libraries angstrom csv unix cmdliner lwt.unix cohttp cohttp-lwt-unix yojson lwt_ppx)
+ (preprocess (pps lwt_ppx)))
 
 (ocamllex lexer)
 (ocamlyacc parser)
